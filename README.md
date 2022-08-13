@@ -49,4 +49,4 @@ Scrivo - Helper for development for - Micropython/Python.
   - **Core** board:
      - vfs: project\ac_xm_hisense_control\board_core
   - Home Assistant Mqtt:
-     - <img src="C:\Users\straga\AppData\Roaming\Typora\typora-user-images\image-20220813121245056.png" alt="image-20220813121245056" style="zoom:50%;" />
+     - <img src=".\doc\image-20220813121245056.png" alt="image-20220813121245056" style="zoom:50%;" />
