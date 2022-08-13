@@ -1,0 +1,28 @@
+{
+
+  "mod_mqtt": {
+    "_schema": "_module",
+    "name": "mqtt"
+  },
+
+  "mod_pin": {
+    "_schema": "_module",
+    "name": "pin"
+  },
+
+  "mod_i2c": {
+    "_schema": "_module",
+    "name": "i2c"
+  },
+
+  "mod_sensor": {
+    "_schema": "_module",
+    "name": "sensor"
+  },
+
+  "mod_ac_xm": {
+    "_schema": "_module",
+    "name": "ac_xm"
+  }
+
+}

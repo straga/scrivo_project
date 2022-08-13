@@ -1,0 +1,14 @@
+{
+
+  "mqtt_cfg": {
+    "_schema" : "mqtt_cfg",
+    "name": "G12",
+    "addr": "192.168.100.240",
+    "port": 1883,
+    "seq": 0,
+    "active": true,
+    "sub": [],
+    "_upd": true
+  }
+
+}
