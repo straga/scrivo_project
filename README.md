@@ -38,10 +38,13 @@ Scrivo - Helper for development for - Micropython/Python.
 
 - root\ \_conf\\ data_mqtt.json - configure mqtt
 
-  - XM AC Hisesne Control:
-- https://github.com/bannhead/pyaehw4a1/issues/1
-    - https://github.com/htqwe22/device/blob/dev/src/protocol/protocol.c
-		- **PSRAM** board:
-       - vfs: project\ac_xm_hisense_control\board_psram
-	  - **Core** board:
-       - vfs: project\ac_xm_hisense_control\board_core
+  
+
+- XM AC Hisesne Control:
+
+  - https://github.com/bannhead/pyaehw4a1/issues/1
+	- https://github.com/htqwe22/device/blob/dev/src/protocol/protocol.c
+  - **PSRAM** board:
+     - vfs: project\ac_xm_hisense_control\board_psram
+  - **Core** board:
+     - vfs: project\ac_xm_hisense_control\board_core
