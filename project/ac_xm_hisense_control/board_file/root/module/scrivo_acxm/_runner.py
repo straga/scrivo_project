@@ -29,7 +29,7 @@ def hexh(data, sep=' '):
 
 
 class Runner(Module):
-    mode = "normal"  # sniff, ac_run_init, normal
+    mode = "normal"  # sniff, cloud, normal
     ac_swriter = None
     ac_sreader = None
     lock = asyncio.Lock()
@@ -78,7 +78,6 @@ class Runner(Module):
             '''
             Mode:
                 sniff - sniffing data from UART - just raw data without detect right packet
-                ac_run_init - AC init(just for test)
                 cloud - use for just receive data from AC to AC. When need get data between AC and cloud.
                 normal - normal mode
             '''
