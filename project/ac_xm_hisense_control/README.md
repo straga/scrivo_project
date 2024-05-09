@@ -26,7 +26,15 @@ acxm:
     - True
     - ["mag", "raw"]
 
-### Home Assistan  
 
+### FTP
+<img src="doc/ftp.png" width=50% height=50%>
+
+
+### MQTT Auto discovery
+
+<img src="doc/mqtt.png" width=50% height=50%>
+
+### Home Assistan  will be configure
 
 <img src="doc/image-20220813121245056.png" width=50% height=50%>
