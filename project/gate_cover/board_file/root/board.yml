@@ -1,0 +1,70 @@
+
+board:
+  - name: "g12-gate"
+    telemetry:
+
+wifi:
+  networks:
+    - ssid: !secret iot_ssid
+      password: !secret iot_password
+    - ssid: !secret home_ssid
+      password: !secret home_password
+
+mqtt:
+  - name: "bunker"
+    addr: "192.168.100.240"
+    port: 1883
+    topic: "dev/g12-gate"
+    birth: True
+    lwt: True
+    sub: []
+
+pin:
+  - id: r1_output
+    platform: gpio
+    mode: OUT
+    pin: 27
+
+  - id: r2_output
+    platform: gpio
+    mode: OUT
+    pin: 14
+
+  - id: status_output
+    platform: gpio
+    mode: OUT
+    inverted: True
+    pin: 13
+
+switch:
+  - platform: binary
+    id: r1
+    name: "Relay 1"
+    pin: r1_output
+    restore: "OFF"
+
+  - platform: binary
+    id: r2
+    pin: r2_output
+    name: "Relay 2"
+    restore: "OFF"
+
+  - platform: binary
+    id: status
+    pin: status_output
+    name: "Status LED"
+    restore: "OFF"
+
+cover:
+  - platform: relay_two
+    id: gate
+    name: "Gate"
+    relay_1: r1
+    relay_2: r2
+    close_duration: 26
+
+telemetry:
+  - board: True
+    wifi: True
+    switch: True
+    cover: True
