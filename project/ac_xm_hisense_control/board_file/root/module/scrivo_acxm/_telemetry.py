@@ -18,97 +18,101 @@ class Runner(Telemetry):
         self.ac = self.core.env("acxm")
 
         self.mbus.sub_h("cmd/ac_control/#", self.name, "telemetry.ac_act")
-        self.core.cron("AC", self.ac_info, 15, "sec")
+        self.core.cron("AC info", self.ac_info, 15, "sec")
 
         self.blacklist = ["rev23", "rev25", "rev47", "rev48", "rev49", "rev50", "rev51", "rev52", "rev53", "rev54", "rev55", "rev56"]
 
         launch(self.ac_event)
 
 
-    def notify(self):
+    async def notify(self):
         # Clear all data
         # AC status
         for data in _Data_102_0:
             data["val"] = None
+        await asyncio.sleep(0.01)
 
 
-    def reg_config(self):
-        self.add_config("sensor", "AC ping", ent_cat="diagnostic", state="BOARD/ac_ping")
+    async def reg_config(self):
+        await self.add_config("sensor", "AC ping", ent_cat="diagnostic", state="BOARD/ac_ping")
+
         for idx, _data in enumerate(_Data_102_0):
             name = _data["name"]
             if name not in self.blacklist:
-                self.add_config("sensor", f"AC {name}", state=f"status/{name}")
+                await self.add_config("sensor", f"AC {name}", state=f"status/{name}")
 
         for idx, _data in enumerate(_Data_102_64):
             name = _data["name"]
-            self.add_config("sensor", f"KWH {name}", state=f"kwh/{name}")
+            await self.add_config("sensor", f"KWH {name}", state=f"kwh/{name}")
 
         for idx, _data in enumerate(_Data_7_1):
             name = _data["name"]
-            self.add_config("sensor", f"Soft {name}", state=f"soft/{name}")
+            await self.add_config("sensor", f"Soft {name}", state=f"soft/{name}")
 
         for idx, _data in enumerate(_Data_10_4):
             name = _data["name"]
-            self.add_config("sensor", f"Recv {name}", state=f"recv/{name}")
+            await self.add_config("sensor", f"Recv {name}", state=f"recv/{name}")
 
         for idx, _data in enumerate(_Data_30_0):
             name = _data["name"]
-            self.add_config("sensor", f"Ping {name}", state=f"ping/{name}")
+            await self.add_config("sensor", f"Ping {name}", state=f"ping/{name}")
 
 
 
         # SWITCH
-        self.add_config("switch", "Run Status",
+        await self.add_config("switch", "Run Status",
                         state=f"status/run_status", cmd="ac_control/run_status", ic="mdi:power",
                         ha_pl_off="off", ha_pl_on="on")
 
-        self.add_config("switch", "Low Electricity",
+        await self.add_config("switch", "Low Electricity",
                         state=f"status/low_electricity", cmd="ac_control/low_electricity", ic="mdi:power-plug",
                         ha_pl_off="off", ha_pl_on="on")
 
-        self.add_config("switch", "Up Down",
+        await self.add_config("switch", "Up Down",
                         state=f"status/up_down", cmd="ac_control/up_down", ic="mdi:arrow-up-down",
                         ha_pl_off="off", ha_pl_on="on")
 
-        self.add_config("switch", "Left Right",
+        await self.add_config("switch", "Left Right",
                         state=f"status/left_right", cmd="ac_control/left_right", ic="mdi:arrow-left-right",
                         ha_pl_off="off", ha_pl_on="on")
 
-        self.add_config("switch", "Turbo",
+        await self.add_config("switch", "Turbo",
                         state=f"status/efficient", cmd="ac_control/turbo", ic="mdi:fan",
                         ha_pl_off="off", ha_pl_on="on")
 
-        self.add_config("switch", "Mute",
+        await self.add_config("switch", "Mute",
                         state=f"status/mute", cmd="ac_control/quiet", ic="mdi:volume-mute",
                         ha_pl_off="off", ha_pl_on="on")
 
-        self.add_config("switch", "Back LED",
+        await self.add_config("switch", "Back LED",
                         state=f"status/back_led", cmd="ac_control/back_led", ic="mdi:led-strip",
                         ha_pl_off="off", ha_pl_on="on")
 
         # SELECT
-        self.add_config("select", "Wind Status",
+        await self.add_config("select", "Wind Status",
                         state=f"status/wind_status", cmd="ac_control/wind_status", ic="mdi:fan",
                         ha_ops=["off", "auto", "lower", "low", "medium", "high", "higher"])
 
-        self.add_config("select", "Sleep Status",
+        await self.add_config("select", "Sleep Status",
                         state=f"status/sleep_status", cmd="ac_control/sleep_status", ic="mdi:sleep",
                         ha_ops=["off","0", "1", "2", "3", "4"])
 
-        self.add_config("select", "Mode Status",
+        await self.add_config("select", "Mode Status",
                         state=f"status/mode_status", cmd="ac_control/mode_status", ic="mdi:air-conditioner",
                         ha_ops=["cool", "fan_only", "heat", "dry", "auto"])
 
         # NUMBER SLIDER
-        self.add_config("number", "Temp Indoor Set", ha_mode="slider",
+        await self.add_config("number", "Temp Indoor Set", ha_mode="slider",
                         state=f"status/indoor_temperature_setting", cmd="ac_control/temp_in", ic="mdi:thermometer",
                         ha_min=16, ha_max=30, ha_step=1, ha_sleep_status="°C")
 
     async def ac_event(self):
         while True:
-            await self.ac.event.wait()
-            await self.ac_data()
-            self.ac.event.clear()
+            if self.ac.event:
+                await self.ac.event.wait()
+                await self.ac_data()
+                self.ac.event.clear()
+            await asyncio.sleep(0.01)
 
     async def ac_data(self):
         if self.tele._alive:
@@ -118,7 +122,7 @@ class Runner(Telemetry):
             # AC status
             for idx, data in enumerate(_Data_102_0):
                 new_data = self.ac.store_102[idx]
-                if new_data is not None:
+                if new_data is not None and "val" in data:
                     if new_data != data["val"]:
                         name = data["name"]
                         log.info(f"AC: {data["val"]} -> {new_data} : {name}")
@@ -134,24 +138,28 @@ class Runner(Telemetry):
                 if data["val"] is not None:
                     name = data["name"]
                     await self.tele.mqtt.apub_msg(f"kwh/{name}", data["val"])
+                await asyncio.sleep(0.01)
 
             for idx, data in enumerate(_Data_7_1):
                 data["val"] = self.ac.store_7_1[idx]
                 if data["val"] is not None:
                     name = data["name"]
                     await self.tele.mqtt.apub_msg(f"soft/{name}", data["val"])
+                await asyncio.sleep(0.01)
 
             for idx, data in enumerate(_Data_10_4):
                 data["val"] = self.ac.store_10_4[idx]
                 if data["val"] is not None:
                     name = data["name"]
                     await self.tele.mqtt.apub_msg(f"recv/{name}", data["val"])
+                await asyncio.sleep(0.01)
 
             for idx, data in enumerate(_Data_30_0):
                 data["val"] = self.ac.store_30_0[idx]
                 if data["val"] is not None:
                     name = data["name"]
                     await self.tele.mqtt.apub_msg(f"ping/{name}", data["val"])
+                await asyncio.sleep(0.01)
 
         await asyncio.sleep(0.01)
 

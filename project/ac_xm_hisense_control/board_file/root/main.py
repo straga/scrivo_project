@@ -5,7 +5,7 @@ import _thread
 import gc
 
 
-gc.threshold(4096)  # Garbage Collector, need test, may not need or some other value or disable
+gc.threshold(2 * 1024)  # Garbage Collector, need test, may not need or some other value or disable
 
 STOP = False  # Stop flag
 storage_dir = "."  # Storage patch
@@ -22,7 +22,7 @@ async def run_wdt():
     # print("WDT: RUN")
     while True:
         wdt.feed()
-        # gc.collect()
+        gc.collect()
         # print(f"Free Mem: {gc.mem_free()}")
         # print("WDT RESET")
         await asyncio.sleep(5)
@@ -35,7 +35,11 @@ def vfs():
     fs_free = fs_stat[0] * fs_stat[3]
     print("File System Size {:,} - Free Space {:,}".format(fs_size, fs_free))
 
-
+def unloadModule(mod_name):
+    # removes module from the system
+    import sys
+    if mod_name in sys.modules:
+        del sys.modules[mod_name]
 # Loader
 async def loader():
 
@@ -52,18 +56,24 @@ async def loader():
 
     # Core
     from scrivo.core import Core
-    Core(part_name=part_name)
+    Core(part_name=part_name, maxsize=100)
     print("CORE: init")
 
     # Parse config file
     filename = 'board.yml'
     print("Parse Config: board.yml")
     try:
-        from scrivo.module import parse_config
+        from scrivo.loader import parse_config
         await parse_config(filename)
+
     except Exception as e:
         print(f"ERROR: config file - {e}")
 
+    unloadModule('scrivo.loader')
+    unloadModule('safe')
+    unloadModule('boot_cfg')
+    gc.collect()
+    print("Ram free: ", gc.mem_free())
 
 def main():
     # VFS info print

@@ -2,10 +2,11 @@
 from scrivo.dev import decode_UTF8
 from scrivo.platform import Queue
 from scrivo.platform import launch
+# from scrivo.platform import is_coro
 
 from scrivo import logging
 log = logging.getLogger("MBUS")
-# log.setLevel(logging.DEBUG)
+log.setLevel(logging.DEBUG)
 
 
 class Sub:
@@ -14,15 +15,40 @@ class Sub:
         self.sub_id = sub_id
         self.env = env
         self.func = func
+        self.status = False
+        self.method = None
+
+    # @property
+    # def name(self):
+    #     return f"{self.env}.{self.func}"
 
     def __str__(self):
-        return f"topic: {self.topic}/ sub_id: {self.sub_id} = func: {self.func}"
+        return f"SUB: topic: {self.topic}/ sub_id: {self.sub_id} = func: {self.func}"
 
     def __repr__(self):
         return self.__str__()
 
     def __call__(self, msg):
-        self.func(msg)
+        self.method(msg)
+        #launch(self.start, msg)
+
+
+    # async def start(self, msg):
+    #     if self.status:
+    #         log.warning(f"{self.name} - Already Running")
+    #         return
+    #
+    #     self.status = True
+    #     #log.info(f"{self.name} {msg} START: ")
+    #     try:
+    #         coro = self.method(msg)
+    #         #log.info(f"SUB: {self.name} - coro: {is_coro(coro)} - msg: {msg}")
+    #         if is_coro(coro):
+    #             await coro
+    #     except Exception as e:
+    #         log.error(f"Mbus Job: {self.name} - {e}")
+    #     #log.info(f"{self.name} {msg} STOP: ")
+    #     self.status = False
 
 
 class Pub:
@@ -64,9 +90,11 @@ class Pub:
 
 
 class MbusManager:
-    def __init__(self, core):
+    def __init__(self, core, maxsize=None):
         self.msub = []
-        self.queue = Queue(250)
+        self.queue = Queue()
+        if maxsize is not None:
+            self.queue = Queue(maxsize)
         self.sub_id = 0
         self.core = core
         log.info("START")
@@ -118,8 +146,18 @@ class MbusManager:
             data = await self.queue.get()
             self.event_msg(data)
 
-    async def job(self, method, data):
-        await method(data)
+    # async def job(self, method, data):
+    #     await method(data)
+
+    # def job(self, name, method, data):
+    #     log.info(f"JOB: {name}")
+    #     if method in self.msub_run:
+    #         status = self.msub_run[method].status
+    #         if status:
+    #             log.warning(f"JOB: {name} - Already Running")
+    #             return
+    #
+    #     self.msub_run[method] = Job(name, method, data)
 
     # Event
     def event_msg(self, data):
@@ -132,11 +170,20 @@ class MbusManager:
             if sub.topic == "/#" or self.topic_match(data.pub_topic, sub.topic):
                 # log.debug(f"      -> {sub.func}")
                 try:
-                    method = self.path(env_name=sub.env, path=sub.func)
+
+                    if sub.method is None:
+                        sub.method = self.path(env_name=sub.env, path=sub.func)
+
+                    #log.debug(f"      -> {sub.method}: {data}")
+                    sub(data)
+                    # name = f"{sub.env}.{sub.func}"
+                    # self.job(name, method, data)
+
                     # log.debug(f"      -> {method}: {data}")
-                    launch(method, data)
+                    # launch(self.job, method, data)
+
                 except Exception as e:
-                    log.error(f"Error: event_msg: {sub.func} - {e}")
+                    log.error(f"Error: event_msg: {sub.env}.{sub.func} - {data.pub_topic} - {e}")
 
     @staticmethod
     def topic_match(target_topic, input_topic):
@@ -149,5 +196,26 @@ class MbusManager:
         for t, i in zip(target_parts, input_parts):
             if t != i and t != "#" and i != "#":
                 return False
-    
         return True
+
+
+# class Job:
+#     def __init__(self, name, act, *args, **kwargs):
+#         self.name = name
+#         self.act = act
+#         self.args = args
+#         self.kwargs = kwargs
+#         self.status = False
+#
+#         launch(self.start)
+#
+#     async def start(self):
+#         self.status = True
+#         try:
+#             if is_coro(self.act):
+#                 await self.act(*self.args, **self.kwargs)
+#             else:
+#                 self.act(*self.args, **self.kwargs)
+#         except Exception as e:
+#             log.error(f"Job: {self.name} - {e}")
+#         self.status = False

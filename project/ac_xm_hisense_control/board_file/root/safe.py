@@ -110,20 +110,26 @@ try:
 except Exception as e:
     print(f"AP:err: {e}")
 
-# FTP
-print("FTP: Init")
-try:
-    import uftpd
-except Exception as e:
-    print(f"FTP: {e}")
+
 
 # Telnet
-print("Telnet: Init")
+print(f"Telnet: Init:")
 try:
     import utelnetserver
     utelnetserver.start()
 except Exception as e:
     print(f"Telnet: {e}")
+
+# FTP
+try:
+    ftp = secret("safe_ftp")
+    print(f"FTP: Init: {ftp}")
+    if ftp:
+        import uftpd
+except Exception as e:
+    print(f"FTP: {e}")
+
+
 
 # Safe sleep
 safe_sleep = int(secret("safe_sleep", 1))

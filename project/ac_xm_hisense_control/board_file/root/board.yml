@@ -16,7 +16,7 @@ led-status:
 
 wifi:
   runner:
-    - safe: False
+    #- safe: False
   networks:
     - ssid: !secret iot_ssid
       password: !secret iot_password
@@ -32,6 +32,9 @@ mqtt:
     birth: True
     lwt: True
     sub: []
+    # buffer size for outgoing messages
+    maxsize: 150
+
 
 acxm:
   - name: "hisense"
@@ -43,7 +46,11 @@ acxm:
     debug: True
 
 telemetry:
-  - board: True
-    wifi: True
-    acxm: True
+  runner:
+    - debug: True
+      maxsize: 2
+  module:
+    - board: True
+      wifi: True
+      acxm: True
 

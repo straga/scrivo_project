@@ -12,6 +12,7 @@ from .message import Message, Subscription
 from scrivo import logging
 log = logging.getLogger("MQTT")
 
+import micropython
 
 class MQTTClient:
     class Message(Message):
@@ -20,11 +21,11 @@ class MQTTClient:
     class Subscription(Subscription):
         pass
 
-    def __init__(self, client_id, addr, port, clean=True, keepalive=60, maxsize=50):
+    def __init__(self, client_id, addr, port, clean=True, keepalive=10, maxsize=None):
 
         self.client_id = client_id
         self.connect = MQTTConnect(self, addr, port)
-        self.protocol = DataClassArg(name=b'MQTT', ver=5)  # MQTTv311 = 4
+        self.protocol = DataClassArg(name=b'MQTT', ver=5)  # MQTTv311 = 4, # MQTTv5 = 5
 
         self.birth = None
 
@@ -47,15 +48,22 @@ class MQTTClient:
         self.sleep = 1
         self.lock = asyncio.Lock()
 
-        self.queue = Queue(maxsize)
+        self.queue = Queue()
+        if maxsize is not None:
+            self.queue = Queue(maxsize)
+
         launch(self.mqtt_publish)
 
     # consume messages from queue
     async def mqtt_publish(self):
         while True:
             data = await self.queue.get()
+
+            #log.info(f"[PUB] {data.topic}")
+            #log.info(micropython.mem_info())
+
             await self.task_publish(data)
-            await asyncio.sleep(0.01)
+
 
 
     async def connect_action(self):
@@ -122,67 +130,79 @@ class MQTTClient:
     #         await self.connect.transport.awrite(packet, True)
 
     # Ping
+
     async def mqtt_keepalive(self):
-        period = 0
-
         while self._run:
-            # log.info(f"[FAIL] {self.fail}, con status: {self.broker_status}, open status: {self.open_status}")
-            # PING
-            if period % self.ping_interval == 0:
-                if self.broker_status:
-                    packet = MQTTPacket.ping()
-                    await self.connect.transport.awrite(packet, True)
-
-                if self.fail > 3:
-                    self.fail = 0
-                    await self.connect.close("ping")
-
-                self.fail += 1
-
-
-            # RE-CONNECT
+            if self.broker_status:
+                await self.ping()
             if self.open_status == 0:
-
-                await asyncio.sleep(self.sleep)
-
-                self.sleep += 1
-                if self.sleep > 60:
-                    self.sleep = 1
-
-                await self.connect.create_connect()
-                log.debug("[CONNECT] to MQTT")
-
-
-
-            period += 1
-            if period > 3600:
-                period = 0
+                await self.reconnect()
             await asyncio.sleep(1)
 
-    # async def mqtt_ping(self):
+    async def ping(self):
+        try:
+            packet = MQTTPacket.ping()
+            await self.connect.transport.awrite(packet, True)
+            log.debug(f"[fail] {self.fail}")
+            self.fail += 1
+            if self.fail > 3:
+                self.fail = 0
+                await self.connect.close("ping")
+            await asyncio.sleep(self.ping_interval)
+        except Exception as e:
+            log.error(f"Error in ping: {e}")
+
+    async def reconnect(self):
+        try:
+            self.sleep += 1
+            if self.sleep > 60:
+                self.sleep = 1
+            await asyncio.sleep(self.sleep)
+            await self.connect.create_connect()
+            log.debug("[CONNECT] to MQTT")
+        except Exception as e:
+            log.error(f"Error in reconnect: {e}")
+
+
+    # async def mqtt_keepalive(self):
+    #     period = 0
+    #
     #     while self._run:
-    #         log.debug(f"[FAIL] {self.fail}, con status: {self.broker_status}")
-    #         if self.broker_status:
-    #             packet = MQTTPacket.ping()
-    #             await self.connect.transport.awrite(packet, True)
+    #         # log.info(f"[FAIL] {self.fail}, con status: {self.broker_status}, open status: {self.open_status}")
+    #         # PING
     #
-    #         if self.fail > 3:
-    #             self.fail = 0
-    #             await self.connect.close("ping")
+    #         if period % self.ping_interval == 0:
+    #             log.debug(f"[PING] {period}, {self.ping_interval}, {self.fail}")
     #
-    #         self.fail += 1
-    #         await asyncio.sleep(self.ping_interval)
+    #             if self.broker_status:
+    #                 packet = MQTTPacket.ping()
+    #                 await self.connect.transport.awrite(packet, True)
     #
-    # async def mqtt_connect(self):
-    #     retry = 1
-    #     while self._run:
+    #             if self.fail > 3:
+    #                 self.fail = 0
+    #                 await self.connect.close("ping")
+    #
+    #             self.fail += 1
+    #
+    #
+    #         # RE-CONNECT
     #         if self.open_status == 0:
+    #
+    #             await asyncio.sleep(self.sleep)
+    #
+    #             self.sleep += 1
+    #             if self.sleep > 60:
+    #                 self.sleep = 1
+    #
     #             await self.connect.create_connect()
     #             log.debug("[CONNECT] to MQTT")
-    #         await asyncio.sleep(retry)
-    #         retry += 1
-    #         if retry > 10:
-    #             retry = 1
+    #
+    #         period += 1
+    #         if period > 3600:
+    #             period = 0
+    #         await asyncio.sleep(1)
+
+
 
     def start(self):
         if not self._run:

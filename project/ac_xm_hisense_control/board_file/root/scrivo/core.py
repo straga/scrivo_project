@@ -30,10 +30,10 @@ class Core:
     _board = None
     _job_list = []
 
-    def __init__(self, part_name):
+    def __init__(self, part_name, maxsize=None):
         Core._core = self
         self.part_name = part_name
-        self.mbus = MbusManager(self)
+        self.mbus = MbusManager(self, maxsize=maxsize)
         self.env = Env()
         launch(self._cron_job)
 
@@ -48,12 +48,9 @@ class Core:
     def board():
         return Core._board
 
-    def cron(self, name, act, interval, unit="sec", *args, **kwargs):
-        _act = act(*args, **kwargs)
-        if is_coro(_act):
-            self._job_list.append(Job(name, act, interval, unit, *args, **kwargs))
-        else:
-            log.error(f"Job: {name} - {act} - act is not coroutine")
+    def cron(self, name, act, interval, unit="sec", period=None, *args, **kwargs):
+        self._job_list.append(Job(name, act, interval, unit, period, *args, **kwargs))
+
 
     async def _cron_job(self):
         period = 0
@@ -69,22 +66,13 @@ class Core:
                         if period % (60 * job.interval) == 0:
                             act = job.act
 
-                    elif job.unit == "date":
-                        current_date = time.localtime()
-                        if current_date > job.interval:
-                            self.last_run = current_date
+                    elif job.unit in ["day", "week", "month", "year"]:
+                        if time.time() > job.ms:
+                            self.last_run = time.localtime()
                             act = job.act
-                            if job.period is not None:
-                                if job.period == "day":
-                                    job.interval = job.interval[2] + 1
-                                elif job.period == "week":
-                                    job.interval = job.interval[2] + 7
-                                elif job.period == "month":
-                                    job.interval = job.interval[1] + 1
-                                elif job.period == "year":
-                                    job.interval = job.interval[0] + 1
-                            else:
-                                job.unit = "STOP"
+                            if job.unit == "day":
+                                job.period[2] = job.period[2] + job.interval
+                                job.ms = time.mktime(job.period)
 
                     if act is not None and not job.status:
                         launch(job.start)
@@ -99,40 +87,54 @@ class Core:
 
 
 class Job:
-    def __init__(self, name, act, interval, unit="sec", *args, **kwargs):
+    def __init__(self, name, act, interval, unit="sec", period=None, *args, **kwargs):
         self.name = name
         self.act = act
         self.interval = interval
+
         self.unit = unit
         self.args = args
         self.kwargs = kwargs
         self.status = False
-        self.period = None
+
         self.last_run = None
+        tz = 3
 
-        if isinstance(interval, tuple):
-            # check if inteval less that 9, create new interval with 9 elements
-            if len(interval) < 9:
-                interval = list(interval)
-                interval.extend([0] * (9 - len(interval)))
-                interval = tuple(interval)
+        # core.cron('My Job', my_job, 1, 'day', (24,00))
 
-            self.interval = time.mktime(interval)
-            self.period = unit
-            self.unit = "date"
+        self.period = None
+        self.ms = None
+
+        if unit == "day" and period is not None:
+            today = list(time.localtime())
+            # (2024, 5, 16, 12, 19, 1, 3, 137)
+
+            today[3] = today[3] - period[0]
+            today[4] = today[4] - period[1]
+            today[3] = today[3] - tz
+            # Create a new tuple with the modified hour
+            self.period = today
+            self.ms = time.mktime(today)
+
+        log.info(f"Cron Job: {self}")
 
     def __str__(self):
-        return f"{self.name}: {self.interval} {self.unit}"
+        return f"{self.name}: {self.interval} {self.unit} - {self.period}"
 
     def __repr__(self):
-        return f"{self.name}: {self.interval} {self.unit}"
+        return self.__str__()
 
     async def start(self):
         self.status = True
         try:
-            await self.act(*self.args, **self.kwargs)
+            _act = self.act(*self.args, **self.kwargs)
+            if is_coro(_act):
+                await _act
+            else:
+                log.error(f"Job: {self.name} - act is not coroutine")
+
+            # await self.act(*self.args, **self.kwargs)
         except Exception as e:
             log.error(f"Job: {self.name} - {e}")
-        #await self.act(*self.args, **self.kwargs)
         self.status = False
 

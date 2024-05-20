@@ -103,7 +103,7 @@ class SwitchInit:
         return val
 
     def __repr__(self):
-        return f"{self.name} - {self.pin}"
+        return f"{self.name} - {self.pin} "
 
     def __str__(self):
         return f"Switch: {self.name} - {self.pin}"

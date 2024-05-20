@@ -21,7 +21,7 @@ class Config(DataClassArg):
 class Runner(Module):
 
     lock = asyncio.Lock()
-    _switchs = {}
+    _switches = {}
 
     def activate(self, props):
         for config in props.configs:
@@ -33,19 +33,13 @@ class Runner(Module):
                 log.info(f" Config: {config}")
                 sw = SwitchInit(config)
                 sw.cb = self.callback
-                self._switchs[config.id] = sw
+                self._switches[config.id] = sw
 
         self.sub_h(topic="cmd/switch/#", func="sub_control")
 
     def get_switch(self, sw_id=None):
-        sw = self._switchs.get(sw_id, None)
+        sw = self._switches.get(sw_id, None)
         return sw
-
-    # notify all state from cfg
-    def notify(self):
-        for sw in self._switchs.values():
-            self.callback(sw)
-
 
     def callback(self, sw):
         self.mbus.pub_h(sw.stat_t, self.get_state(sw), retain=True)

@@ -1,33 +1,43 @@
 
 # ESP32
+import gc
+import os
 import asyncio
 # Queue from asyncio becouse micropython does not have Queue, use Queue from primitives
 from primitives.queue import Queue
-
 from time import ticks_ms, ticks_diff
 
-import gc
-import os
 
 from scrivo import logging
 log = logging.getLogger("core")
 # log.setLevel(logging.INFO)
 
-#upy
-async def awrite(writer, data,  b=False):
 
+async def awrite_chunk(writer, data, chunk_size=1024, b=False):
     try:
         if isinstance(data, str):
             data = data.encode('utf-8')
-        await writer.awrite(data)
+        for i in range(0, len(data), chunk_size):
+            chunk = data[i:i+chunk_size]
+            await asyncio.wait_for(writer.awrite(chunk), timeout=1)
     except Exception as e:
         log.debug("Error: write: {}".format(e))
         pass
 
+# #upy
+async def awrite(writer, data,  b=False):
+    try:
+        if isinstance(data, str):
+            data = data.encode('utf-8')
+        await asyncio.wait_for(writer.awrite(data), timeout=1)
+    except Exception as e:
+        log.debug("Error: write: {}".format(e))
+        pass
 
 async def aclose(writer):
     try:
-        await writer.aclose()
+        # await writer.aclose()
+        await asyncio.wait_for(writer.aclose(), timeout=1)
     except Exception as e:
         log.debug("close: {}".format(e))
         pass

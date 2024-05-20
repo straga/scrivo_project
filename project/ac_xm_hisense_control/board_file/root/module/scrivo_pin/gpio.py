@@ -2,7 +2,6 @@
 from machine import Pin, Signal
 from scrivo.dev import DataClassArg
 
-
 from scrivo import logging
 log = logging.getLogger("PIN")
 
@@ -65,20 +64,5 @@ class PinInit:
     def __str__(self):
         return f"{self.name} - {self.pin}"
 
-
-# class Runner(Load):
-#
-#     def get_pin(self, pin_name, value=None):
-#         pin_init = None
-#         if hasattr(self.cfg, pin_name):
-#             pin_init = getattr(self.cfg, pin_name)
-#             if isinstance(pin_init, PinInit):
-#                 return pin_init
-#
-#             elif pin_init:
-#                 pin_init = PinInit(pin_name, pin_init, value)
-#                 setattr(self.cfg, pin_name, pin_init)
-#
-#         return pin_init
 
 

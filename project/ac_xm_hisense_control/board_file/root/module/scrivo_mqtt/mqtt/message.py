@@ -13,32 +13,55 @@ class Message:
         self.retain = retain
         self.dup = False
         self.properties = DataClassArg(**kwargs)
+        self._payload_size = None
+        self._payload = payload
+        self._done = False
 
-        if isinstance(payload, (list, tuple, dict)):
-            payload = json.dumps(payload)
+    @property
+    def payload(self):
+        if not self._done:
+            self.desilization()
+        return self._payload
 
-        if isinstance(payload, (int, float)):
-            self.payload = str(payload).encode('ascii')
-        elif isinstance(payload, str):
-            self.payload = payload.encode('utf-8')
-        elif isinstance(payload, bool):
-            self.payload = str(payload).encode('ascii')
-        elif payload is None:
-            self.payload = b''
-        else:
-            self.payload = payload
+    @property
+    def payload_size(self):
+        if not self._done:
+            self.desilization()
+        return self._payload_size
 
-        try:
-            self.payload_size = len(self.payload)
-        except Exception as e:
-            log.error(f"get_size: {e} - {self.payload}")
-            self.payload = "error".encode('utf-8')
-            self.payload_size = len(self.payload)
+    def desilization(self):
 
-        if self.payload_size > 268435455:
+        if isinstance(self._payload, (list, tuple, dict)):
+            self._payload = json.dumps(self._payload).encode('utf-8')
+
+        elif isinstance(self._payload, (int, float)):
+            self._payload = str(self._payload).encode('ascii')
+
+        elif isinstance(self._payload, str):
+            self._payload = self._payload.encode('utf-8')
+
+        elif isinstance(self._payload, bool):
+            self._payload = str(self._payload).encode('ascii')
+
+        elif self._payload is None:
+            self._payload = b''
+
+        if self._payload_size is None:
+            try:
+                self._payload_size = len(self._payload)
+            except Exception as e:
+                log.error(f"get_size: {e} - {self._payload}")
+                self._payload = "error".encode('utf-8')
+                self._payload_size = len(self._payload)
+
+        log.debug(f"MSG: {self.topic} -> size: {self._payload_size}")
+
+        if self._payload_size > 268435455:
             log.warning('Message too big')
-            self.payload = b''
-            self.payload_size = len(b'')
+            self._payload = b''
+            self._payload_size = len(b'')
+
+        self._done = True
 
     # def __str__(self):
     #     return f"Message(topic={self.topic}, payload={self.payload})"

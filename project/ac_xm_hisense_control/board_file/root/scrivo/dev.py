@@ -48,6 +48,12 @@ class DataClassArg:
         for key in kwargs:
             setattr(self, key, kwargs[key])
 
+    def __call__(self, config_dict):
+        for key, value in config_dict.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+        return self
+
     def __str__(self):
         return ', '.join(f'{k}={v}' for k, v in self.__dict__.items())
 
@@ -76,6 +82,18 @@ def hexh(data,  sep=' '):
     except Exception as e:
         log.debug("error: HEX: {}".format(e))
     return data
+
+
+# value: число, у которого необходимо считать бит
+# bit: номер бита, состояние которого необходимо считать.
+def get_bit(value, bit):
+    return (value & (1 << bit)) == 1
+
+def set_bit(value, bit, bit_value):
+    if bit_value:
+        return value | (1 << bit)
+    else:
+        return value & ~(1 << bit)
 
 
 def secret(val, result=False, _secret="!secret "):
