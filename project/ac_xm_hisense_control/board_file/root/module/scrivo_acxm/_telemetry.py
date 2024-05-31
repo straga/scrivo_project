@@ -11,6 +11,8 @@ from .responses import _Data_101_0, _Data_102_64, _Data_102_0, _Data_7_1, _Data_
 
 class Runner(Telemetry):
 
+    cmd_active = False
+
     def activate(self, props):
 
         log.info("TELEMETRY from AC")
@@ -163,13 +165,12 @@ class Runner(Telemetry):
 
         await asyncio.sleep(0.01)
 
+    async def ac_cmd_handler(self, msg):
+        if self.cmd_active:
+            return
 
-    @decode_payload
-    async def ac_act(self, msg):
-        log.info("")
-        log.info(f"ac_control: t: {msg.topic},  k: {msg.key}, p: {msg.payload}")
-
-        msg.payload = msg.payload.lower()
+        self.cmd_active = True
+        ##log.info(f"AC_CMD_HANDLER: {msg}")
         async with self.ac.lock:
             if msg.key == "run_status":
                 await self.ac.cmd("101_0", {"run_status": msg.payload})
@@ -220,4 +221,18 @@ class Runner(Telemetry):
                     await self.ac.cmd("101_0", {"left_right": "on", "up_down": "off"})
                 elif msg.payload == "off":
                     await self.ac.cmd("101_0", {"left_right": "off", "up_down": "off"})
+
+        self.cmd_active = False
+        await asyncio.sleep(0.01)
+
+
+
+    @decode_payload
+    def ac_act(self, msg):
+        log.info("")
+        log.info(f"ac_control: t: {msg.topic},  k: {msg.key}, p: {msg.payload}")
+
+        msg.payload = msg.payload.lower()
+        launch(self.ac_cmd_handler, msg)
+
 
