@@ -4,6 +4,7 @@ import struct
 from machine import UART
 from scrivo.module import Module
 from scrivo.platform import launch
+from scrivo.platform import Queue
 
 import gc
 
@@ -14,7 +15,7 @@ from .responses import _Setting_101_0, _Setting_102_64, _Setting_102_0, _Setting
 
 from scrivo import logging
 log = logging.getLogger("AC_XM")
-# log.setLevel(logging.DEBUG)
+log.setLevel(logging.DEBUG)
 
 HEADER = b'\xF4\xF5' # F4F5 header
 FOOTER = b'\xF4\xFB' # F4FB footer
@@ -90,6 +91,7 @@ class Runner(Module):
                 launch(self.ac_msg_reader)
 
 
+
     # sneffing data from UART
     async def sniffer(self):
         while True:
@@ -113,6 +115,7 @@ class Runner(Module):
         return data
 
     async def ac_msg_reader(self):
+
         while True:
             data = None
             # Read 2 bytes and check if it is a packet header
@@ -127,12 +130,18 @@ class Runner(Module):
                         # Found packet footer, return packet
                         break
 
+                    await asyncio.sleep(0.01)
+
             if data is not None:
                 if self.mode == "ac_init_test":
                     log.debug(f"Data: {hexh(data)}")
                 else:
+                    log.debug(f"Data: {hexh(data)}")
                     self.process_data(data)
+
             await asyncio.sleep(0.01)
+
+
 
     def process_data(self, data):
         mdata = memoryview(data)
