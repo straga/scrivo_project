@@ -15,7 +15,7 @@ from .responses import _Setting_101_0, _Setting_102_64, _Setting_102_0, _Setting
 
 from scrivo import logging
 log = logging.getLogger("AC_XM")
-log.setLevel(logging.DEBUG)
+#log.setLevel(logging.DEBUG)
 
 HEADER = b'\xF4\xF5' # F4F5 header
 FOOTER = b'\xF4\xFB' # F4FB footer
@@ -136,7 +136,7 @@ class Runner(Module):
                 if self.mode == "ac_init_test":
                     log.debug(f"Data: {hexh(data)}")
                 else:
-                    log.debug(f"Data: {hexh(data)}")
+                    #log.debug(f"Data: {hexh(data)}")
                     self.process_data(data)
 
             await asyncio.sleep(0.01)
