@@ -42,6 +42,8 @@ class Runner(Module):
                     self.debug = config["debug"]
 
         launch(self.slave_process)
+        launch(self.shows)
+
 
     async def slave_process(self):
         while True:
@@ -49,13 +51,14 @@ class Runner(Module):
             for request in self.registry.requests:
                 await self.modbus_ex(request)
 
+            self.shows()
+
             await asyncio.sleep(5)
 
     async def modbus_ex(self, request):
         uart_pdu = Modbus.make_request(request)
         if uart_pdu is not None:
             # send request to unit
-            log.info(f" >> uart {'Meter'}: {hexh(uart_pdu)}")
             log.info(f" >> uart {'Meter'}: {hexh(uart_pdu)}")
             await self.uart_swriter.awrite(uart_pdu)
             # log.info(f" >> uart {'Meter'}: {hexh(uart_pdu)}")
@@ -67,10 +70,14 @@ class Runner(Module):
                 log.error(f"Meter got timeout {request.name})")
                 return
 
-            # log.info(f" << uart {'Meter'}: {hexh(data)}")
+            log.info(f" << uart {'Meter'}: {hexh(data)}")
 
             if data != b"":
                 try:
                     Modbus.parse_response(request, data)
                 except Exception as e:
                     log.error(f"Error parse response {e}")
+
+    def shows(self):
+        for sensor in self.registry.sensors.values():
+            log.info(f"    {sensor.name}: {sensor.value}")
