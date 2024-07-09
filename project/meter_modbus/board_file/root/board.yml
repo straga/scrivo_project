@@ -1,6 +1,7 @@
 
 board:
-  - name: "g12_hisense"
+  - name: "g12-input_meter"
+    telemetry:
 
 pin:
   - id: status_output
@@ -22,33 +23,24 @@ wifi:
     - ssid: !secret home_ssid
       password: !secret home_password
 
-
 mqtt:
-  - name: "bunker"
-    addr: "192.168.100.240"
+  - name: "local"
+    addr: "192.168.0.2"
     port: 1883
-    topic: "dev/g12_hisense"
+    topic: "dev/g12-input-meter"
     birth: True
     lwt: True
     sub: []
-    maxsize: 100
 
+input-meter:
+  - name: "Input Meter"
+    addr: 1
 
-acxm:
-  - name: "hisense"
-    uart_id: 0
-    uart_rx: 8
-    uart_tx: 7
-    uart_baudrate: 9600
-    mode: "normal"
-    debug: True
 
 telemetry:
-  runner:
-    - debug: True
-      maxsize: 2
-  module:
-    - board: True
-      wifi: True
-      acxm: True
+  - board: True
+    wifi: True
+    input-meter: True
+
+
 

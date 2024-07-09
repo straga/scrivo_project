@@ -22,8 +22,6 @@ class Runner(Telemetry):
         self.mbus.sub_h("cmd/ac_control/#", self.name, "telemetry.ac_act")
         self.core.cron("AC info", self.ac_info, 15, "sec")
 
-        self.blacklist = ["rev23", "rev25", "rev47", "rev48", "rev49", "rev50", "rev51", "rev52", "rev53", "rev54", "rev55", "rev56"]
-
         launch(self.ac_event)
 
 
@@ -40,8 +38,7 @@ class Runner(Telemetry):
 
         for idx, _data in enumerate(_Data_102_0):
             name = _data["name"]
-            if name not in self.blacklist:
-                await self.add_config("sensor", f"AC {name}", state=f"status/{name}")
+            await self.add_config("sensor", f"AC {name}", state=f"status/{name}")
 
         for idx, _data in enumerate(_Data_102_64):
             name = _data["name"]
@@ -129,8 +126,7 @@ class Runner(Telemetry):
                         name = data["name"]
                         log.info(f"AC: {data["val"]} -> {new_data} : {name}")
                         data["val"] = new_data
-                        if name not in self.blacklist:
-                            await self.tele.mqtt.apub_msg(f"status/{name}", new_data)
+                        await self.tele.mqtt.apub_msg(f"status/{name}", new_data)
         await asyncio.sleep(0.01)
 
     async def ac_info(self):
@@ -170,7 +166,8 @@ class Runner(Telemetry):
             return
 
         self.cmd_active = True
-        ##log.info(f"AC_CMD_HANDLER: {msg}")
+
+        log.info(f"AC_CMD_HANDLER: {msg}")
         async with self.ac.lock:
             if msg.key == "run_status":
                 await self.ac.cmd("101_0", {"run_status": msg.payload})

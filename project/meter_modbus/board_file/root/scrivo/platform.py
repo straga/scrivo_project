@@ -4,7 +4,7 @@ import gc
 import os
 import asyncio
 # Queue from asyncio becouse micropython does not have Queue, use Queue from primitives
-# from primitives.queue import Queue
+from primitives.queue import Queue
 from time import ticks_ms, ticks_diff
 
 

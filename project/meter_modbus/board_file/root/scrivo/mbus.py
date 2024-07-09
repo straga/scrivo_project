@@ -1,5 +1,6 @@
 
 from scrivo.dev import decode_UTF8
+# from scrivo.platform import Queue
 from scrivo.platform import launch
 from scrivo.dev import DataClassArg
 
@@ -140,14 +141,20 @@ class MbusManager:
         self.event.set()
         #log.info(f"EVENT SET: {len(self.mpub)})")
 
+        # pub_data = Pub(topic=topic, payload=payload, **properties)
+        # self.queue.put_nowait(pub_data)
 
     async def apub_h(self, topic, payload, **properties):
         self.pub_h(topic, payload, **properties)
         await sleep(0.01)
+        # pub_data = Pub(topic=topic, payload=payload, **properties)
+        # await self.queue.put(pub_data)
 
-    # consume messages
+    # consume messages from queue
     async def _publish(self):
         while True:
+            #data = await self.queue.get()
+            #self.event_msg(data)
             await self.event.wait()
             len_pub_start = len(self.mpub)
             #log.info(f"EVENT PUB: {len_pub_start})")

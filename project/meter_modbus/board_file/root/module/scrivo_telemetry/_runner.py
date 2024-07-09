@@ -124,6 +124,10 @@ class Runner(Module):
     async def _tele_update(self):
 
         if not self._in_progress:
+
+            #before = self.mqtt.mqtt.queue.maxsize
+            #self.mqtt.mqtt.queue.maxsize = self.maxsize
+
             #log.info(f"Telemetry update start: {before} -> {self.maxsize}")
             self._in_progress = True
 
@@ -146,6 +150,9 @@ class Runner(Module):
             # Publish telemetry info
             await self.notify_update()
 
+
+
+            #self.mqtt.mqtt.queue.maxsize = before
             self._in_progress = False
             log.info(f"Telemetry update done")
 
@@ -155,7 +162,10 @@ class Runner(Module):
         self.telemetry_update = True
         log.info(f"Telemetry alive start")
         cfg = Config("button", "Telemetry update", ent_cat="diagnostic", cmd="tele/update")
+        #before = self.mqtt.mqtt.queue.maxsize
+        # self.mqtt.mqtt.queue.maxsize = 1
         await self._telemetry_config(cfg)
+        # self.mqtt.mqtt.queue.maxsize = before
         await self.notify_update()
         self.telemetry_update = False
 

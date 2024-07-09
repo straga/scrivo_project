@@ -4,7 +4,6 @@ import struct
 from machine import UART
 from scrivo.module import Module
 from scrivo.platform import launch
-from scrivo.platform import Queue
 
 import gc
 
@@ -15,7 +14,7 @@ from .responses import _Setting_101_0, _Setting_102_64, _Setting_102_0, _Setting
 
 from scrivo import logging
 log = logging.getLogger("AC_XM")
-#log.setLevel(logging.DEBUG)
+log.setLevel(logging.DEBUG)
 
 HEADER = b'\xF4\xF5' # F4F5 header
 FOOTER = b'\xF4\xFB' # F4FB footer
@@ -36,8 +35,8 @@ class Runner(Module):
     lock = asyncio.Lock()
     ac_init = 0
     ac_ping = 0
-    ac_ping_max = 5
-    ac_ping_wait = 1  # sec
+    ac_ping_max = 60
+    ac_ping_wait = 30  # sec
     ac_process_run = False
     debug = []
     event = asyncio.Event()
@@ -86,7 +85,7 @@ class Runner(Module):
                 launch(self.sniffer)
             elif self.mode == "cloud":
                 launch(self.ac_msg_reader)
-            else:
+            else: # normal or data_print
                 launch(self.ac_run_init)
                 launch(self.ac_msg_reader)
 
@@ -101,6 +100,7 @@ class Runner(Module):
             except asyncio.TimeoutError:
                 log.error("got timeout")
 
+
             if data != b'':
                 log.debug(f"Data: {hexh(data)}")
             await asyncio.sleep(0.1)
@@ -112,6 +112,7 @@ class Runner(Module):
             data = await asyncio.wait_for(self.ac_sreader.read(data_len), timeout)
         except asyncio.TimeoutError:
             log.error("got timeout")
+
         return data
 
     async def ac_msg_reader(self):
@@ -125,7 +126,7 @@ class Runner(Module):
                 data = bytearray(byte)
                 while True:
                     byte = await self.wait_for_data(1)
-                    data.append(byte[0])
+                    data += byte
                     if len(data) >= 4 and data[-2:] == FOOTER:
                         # Found packet footer, return packet
                         break
@@ -133,11 +134,7 @@ class Runner(Module):
                     await asyncio.sleep(0.01)
 
             if data is not None:
-                if self.mode == "ac_init_test":
-                    log.debug(f"Data: {hexh(data)}")
-                else:
-                    #log.debug(f"Data: {hexh(data)}")
-                    self.process_data(data)
+                self.process_data(data)
 
             await asyncio.sleep(0.01)
 
@@ -195,20 +192,19 @@ class Runner(Module):
                 msg.info_msg()
 
     async def ac_run_init(self):
+        launch(self.ac_run_ping)
         while True:
             # AC Init
             if self.ac_init == 0:
+                self.ac_init = 1
                 async with self.lock:
-                    await self.cmd("10_4", {"init": "act"}, 0.2)
-                    await self.cmd("7_1", {"init": "act"}, 0.2)
-                    await self.cmd("102_64", {"init": "act"}, 0.2)
-                    await self.cmd("30_0", {"init": "act"}, 5)
+                    await self.cmd("10_4", {"init": "act"})
+                    await self.cmd("7_1", {"init": "act"})
+                    await self.cmd("102_64", {"init": "act"})
+                    await self.cmd("30_0", {"init": "act"}, 1)
             else:
-                self.ac_ping = self.ac_ping + 1
-                async with self.lock:
-                    await self.cmd("30_0", {"period": "act"}, 0.2)
-                    await self.cmd("102_0", {"period": "act"}, 1)
-                    await self.cmd("102_64", {"init": "act"}, 1)
+               async with self.lock:
+                   await self.cmd("102_0", {"period": "act"})
 
             # Ping
             if self.ac_ping > self.ac_ping_max:
@@ -217,6 +213,14 @@ class Runner(Module):
                 self.ac_init = 1
 
             # Wait
+            await asyncio.sleep(3)
+
+    async def ac_run_ping(self):
+        while True:
+            if self.ac_init == 1:
+                self.ac_ping += 1
+                async with self.lock:
+                   await self.cmd("30_0", {"period": "act"})
             await asyncio.sleep(self.ac_ping_wait)
 
     def store_date(self, msg, data, store):
@@ -260,12 +264,12 @@ class Runner(Module):
     #         prop_val = _data["val"]
     #         log.info(f"  {prop_val}   - {prop_name}")
 
-    async def cmd(self, pkt_name, opt_cmd_list=None, wait=0.01):
+    async def cmd(self, pkt_name, opt_cmd_list=None, wait=0.2):
         # ["101_0", {"temp_indoor_set": 23}]
         # debug
         # log.debug(f"")
         # log.debug(f"")
-        # log.debug(f"CMD: {pkt_name} : {opt_cmd_list}")
+        log.info(f"CMD: {pkt_name} : {opt_cmd_list}")
         try:
             op_name = pkt_name
 
@@ -351,7 +355,8 @@ class Runner(Module):
             # Finish with footer
             mdata.extend(bytes([0xF4, 0xFB]))  # F4F5 footer
 
-            # log.debug(f" Data hex: {hexh(mdata)}")
+            #log.debug(f" Data hex: {hexh(mdata)}")
+
             # if wait is not None:
             #     await self.ac_swriter.awrite(mdata)
             #     await asyncio.sleep(wait)
