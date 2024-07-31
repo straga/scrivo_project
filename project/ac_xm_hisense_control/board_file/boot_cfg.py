@@ -16,13 +16,15 @@ def sys_path_act():
     import sys
     import uos
 
-    bootpart = Partition(Partition.BOOT)
-    runningpart = Partition(Partition.RUNNING)
+    try:
+        bootpart = Partition(Partition.BOOT)
+        runningpart = Partition(Partition.RUNNING)
 
-    print("INFO - Partitions")
-    print(f"Boot:{bootpart}")
-    print(f" Run:{runningpart}")
-
+        print("INFO - Partitions")
+        print(f"Boot:{bootpart}")
+        print(f" Run:{runningpart}")
+    except Exception as e:
+        print(f"Init partition error: {e}")
 
     # Can be use root folder as Partion Name.
     # part_info = runningpart.info()
