@@ -53,7 +53,12 @@ class Runner(Module):
 
         self.client_topic = self.cfg.topic
 
-        config['server'] = '192.168.100.240'  # Change to suit e.g. 'iot.eclipse.org'
+        if hasattr(self.cfg, 'addr') and self.cfg.addr is not None:
+            config['server'] = self.cfg.addr
+        if hasattr(self.cfg, 'user') and self.cfg.user is not None:
+            config['user'] = self.cfg.user
+        if hasattr(self.cfg, 'pwd') and self.cfg.pwd is not None:
+            config['password'] = self.cfg.pwd
 
         config['subs_cb'] = self.mqtt_on_message
         config['connect_coro'] = self.on_connect
