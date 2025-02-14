@@ -1,4 +1,10 @@
 
+## Info
+https://4pda.to/forum/index.php?showtopic=1076299&st=180#entry131577584
+
+![image](https://github.com/user-attachments/assets/07818abd-9f90-4bf4-844c-f152ff3a85fd)
+
+
 ## Hardware
 
 Anu board esp32 with psram. I am use esp32s2 mini.
